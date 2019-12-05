@@ -1,2 +1,2 @@
-# genetic-algrithm
+# genetic-algorithm
 Genetic Algorithm on Gaphs
