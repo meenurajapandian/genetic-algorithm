@@ -7,17 +7,20 @@ import random
 # Fitness calculation function call for a given genotype.
 def calcobj(genotype, data):
     nodeselected = np.where(genotype == 1)
-    sg = data.subgraph(nodeselected)
-    val = 0 # Function of properties of subgraph
+    sg = data.subgraph(nodeselected[0])
+    val = nx.average_clustering(sg)  # Function of properties of subgraph
     return(val)
 
 
 # Boolean function for constraint checking
 # Check for feasibility aka connectivity
 def isFeasibleSolution(genotype, data):
-    nodeselected = np.where(genotype == 1)
-    sg = data.subgraph(nodeselected)
-    return nx.is_connected(sg)
+    if np.count_nonzero(genotype) > 0:
+        nodeselected = np.where(genotype == 1)
+        sg = data.subgraph(nodeselected[0])
+        return nx.is_connected(sg)
+    else:
+        return False
 
 
 # Boolean function to check if "generateindividual" exists in "initialpopulation"
@@ -33,16 +36,17 @@ def listcompare(initialpopulation, generateindividual):
 
 # Function to initialize population.
 def initializepopulation(inpopulationsize, n, data):
-        initialpopulation = []
-        while len(initialpopulation) < inpopulationsize:
-            # generate individual
-            generateindividual = bernoulli.rvs(0.01, size=n)  # Generates an n sized array, 0.01 probability of 1 bit
-            # is generated individual valid?
-            isfeasible = isFeasibleSolution(generateindividual, data)
-            # if valid and does not already exist in population, add to population
-            if isfeasible and listcompare(initialpopulation, generateindividual):
-                initialpopulation.append(generateindividual)
-        return initialpopulation
+    print("initializing population")
+    initialpopulation = []
+    while len(initialpopulation) < inpopulationsize:
+        # generate individual
+        generateindividual = bernoulli.rvs(0.4, size=n)  # Generates an n sized array, 0.01 probability of 1 bit
+        # is generated individual valid?
+        isfeasible = isFeasibleSolution(generateindividual, data)
+        # if valid and does not already exist in population, add to population
+        if isfeasible and listcompare(initialpopulation, generateindividual):
+            initialpopulation.append(generateindividual)
+    return initialpopulation
 
 
 # Selection function. population1 is [[population], fitness].
@@ -70,6 +74,7 @@ def killindividual(popfitness):
 
 # Function to perform GA
 def ga(popsize, n, mutationrate, crossoverrate, numgen, data):
+    print("GA started")
     # Set up GA
     objcallcount = 0  # To track number of fitness function calls
 
