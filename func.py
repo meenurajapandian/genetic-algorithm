@@ -8,8 +8,8 @@ import random
 def calcobj(genotype, data):
     nodeselected = np.where(genotype == 1)
     sg = data.subgraph(nodeselected[0])
-    val = nx.average_clustering(sg)  # Function of properties of subgraph
-    return(val)
+    val = nx.average_clustering(sg) + nx.sigma(sg)  # Function of properties of subgraph
+    return val
 
 
 # Boolean function for constraint checking
