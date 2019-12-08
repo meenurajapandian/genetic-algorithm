@@ -4,11 +4,12 @@ import networkx as nx
 import random 
 
 
-# Fitness calculation function call for a given genotype.
+# Fitness calculation function call for a given genotype
+# Genetic algorithm maximises this function
 def calcobj(genotype, data):
     nodeselected = np.where(genotype == 1)
     sg = data.subgraph(nodeselected[0])
-    val = nx.average_clustering(sg) #+ nx.sigma(sg)  # Function of properties of subgraph
+    val = nx.average_clustering(sg) - (nx.diameter(sg)/nx.number_of_nodes(sg)) #+ nx.sigma(sg)  # Function of properties of subgraph
     return val
 
 

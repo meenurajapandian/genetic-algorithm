@@ -13,22 +13,15 @@ for u in G.nodes():
 
 pos = nx.spring_layout(G)
 
-for u in G.nodes():
-    if G.nodes[u]['club'] == 'Mr. Hi':
-        G.nodes[u]['color'] = "#ababab"
-    else:
-        G.nodes[u]['color'] = "#000000"
+plt.subplot(2, 3, 1)
+nx.draw_networkx(G, pos=pos, node_size=100, node_color=list(nx.get_node_attributes(G,'color').values()))
 
 
-nx.draw_networkx(G, pos=pos, node_color=nx.get_node_attributes(G,'color').values())
-
-
-popsize = 4
+popsize = 5
 n = G.number_of_nodes()
 result = func.ga(popsize, n, 0.1, 0.8, 100, G)
 
-plt.subplot(2, 2, 1)
-nx.draw_networkx(G, pos=pos, node_size=100, node_color=list(nx.get_node_attributes(G, 'color1').values()))
+
 
 for i in range(popsize):
     for j in range(n):
@@ -37,7 +30,11 @@ for i in range(popsize):
         else:
             G.nodes[j]['color1'] = "#ababab"
 
-    plt.subplot(2, 2, (i+1))
+    plt.subplot(2, 3, (i+1))
     nx.draw_networkx(G, pos=pos, node_size=100, node_color=list(nx.get_node_attributes(G, 'color1').values()))
 
 
+plt.show()
+
+print(result['popfitness'])
+print(result['bestfitness'])
