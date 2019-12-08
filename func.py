@@ -1,15 +1,17 @@
 from scipy.stats import bernoulli
 import numpy as np
 import networkx as nx
-import random 
+import random
+import copy
 
 
 # Fitness calculation function call for a given genotype
 # Genetic algorithm maximises this function
 def calcobj(genotype, data):
     nodeselected = np.where(genotype == 1)
+    # print(nodeselected)
     sg = data.subgraph(nodeselected[0])
-    val = nx.average_clustering(sg) - (nx.diameter(sg)/nx.number_of_nodes(sg)) #+ nx.sigma(sg)  # Function of properties of subgraph
+    val = nx.average_clustering(sg)  #- (nx.diameter(sg)/nx.number_of_nodes(sg)) #+ nx.sigma(sg)  # Function of properties of subgraph
     return val
 
 
@@ -46,6 +48,8 @@ def initializepopulation(inpopulationsize, n, data):
         isfeasible = isFeasibleSolution(generateindividual, data)
         # if valid and does not already exist in population, add to population
         if isfeasible and listcompare(initialpopulation, generateindividual):
+            #print(isfeasible)
+            #print(generateindividual)
             initialpopulation.append(generateindividual)
     return initialpopulation
 
@@ -81,21 +85,22 @@ def ga(popsize, n, mutationrate, crossoverrate, numgen, data):
 
     # Define the initial population
     initialpopulation = initializepopulation(popsize, n, data)
-    population = initialpopulation
+    population = copy.deepcopy(initialpopulation)
     # population is a list of length population size and each element an n sized array
     popfitness = []  # Keeps the fitness values of the current population
 
-    fitness = []  # Mean Fitness
-    bestfitness = []  # Best Fitness
-    medfitness = []  # Median Fitness
+    fitness = dict()
+    fitness['mean'] = []  # Mean Fitness
+    fitness['best'] = []  # Best Fitness
+    fitness['median'] = []  # Median Fitness
 
     for i in range(popsize):
         popfitness.append(calcobj(population[i], data))
 
     objcallcount += popsize
-    bestfitness.append(max(popfitness))
-    fitness.append(np.mean(popfitness))
-    medfitness.append(np.median(popfitness))
+    fitness['best'].append(max(popfitness))
+    fitness['mean'].append(np.mean(popfitness))
+    fitness['median'].append(np.median(popfitness))
 
     # Run GA
     for ii in range(numgen):
@@ -113,18 +118,24 @@ def ga(popsize, n, mutationrate, crossoverrate, numgen, data):
             children = [np.concatenate((parentpair[0][0:crossoverpoint], parentpair[1][crossoverpoint:int(n)]), axis=0),
                         np.concatenate((parentpair[1][0:crossoverpoint], parentpair[0][crossoverpoint:int(n)]), axis=0)]
         else:
-            children = [parentpair[0], parentpair[1]]
+            print("Not crossing over")
+            children = [copy.deepcopy(parentpair[0]), copy.deepcopy(parentpair[1])]
 
         # Mutation
         genflag = bernoulli.rvs(mutationrate, size=1)
         if genflag[0] == 1:  # Do Mutation
+            print("Mutating")
             index = random.randrange(0, int(n), 1)
             for i in range(len(children)):
                 children[i][index] = 1 - children[i][index]
 
+        print(children)
+        print(population)
         for j in range(len(children)):
             isfeasible = isFeasibleSolution(children[j], data)
-            if isfeasible and listcompare(population, children[j]): # If feasible and not already present in population
+            if isfeasible and listcompare(population, children[j]):  # If feasible and not already present in population
+                print(isfeasible)
+                print(children[j])
                 presentindex = killindividual(popfitness)
                 population.pop(presentindex)
                 popfitness.pop(presentindex)
@@ -132,16 +143,15 @@ def ga(popsize, n, mutationrate, crossoverrate, numgen, data):
                 popfitness.append(calcobj(children[j], data))
                 objcallcount += 1
 
-        bestfitness.append(max(popfitness))
-        fitness.append(np.mean(popfitness))
-        medfitness.append(np.median(popfitness))
+        fitness['best'].append(max(popfitness))
+        fitness['mean'].append(np.mean(popfitness))
+        fitness['median'].append(np.median(popfitness))
 
     retdict = {
             "population": population,
-            "meanfitness": fitness,
-            "medianfitness": medfitness,
-            "bestfitness": bestfitness,
-            "popfitness": popfitness
+            "fitness": fitness,
+            "popfitness": popfitness,
+            "initpopulation": initialpopulation
     }
 
     return retdict
