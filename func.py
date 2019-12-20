@@ -3,15 +3,24 @@ import numpy as np
 import networkx as nx
 import random
 import copy
-
+import scipy.linalg
 
 # Fitness calculation function call for a given genotype
 # Genetic algorithm maximises this function
 def calcobj(genotype, data):
     nodeselected = np.where(genotype == 1)
-    # print(nodeselected)
     sg = data.subgraph(nodeselected[0])
-    val = nx.average_clustering(sg)  #- (nx.diameter(sg)/nx.number_of_nodes(sg)) #+ nx.sigma(sg)  # Function of properties of subgraph
+    # val = - (nx.diameter(sg)/nx.number_of_nodes(sg))
+    # val = nx.sigma(sg)
+    # val = nx.average_clustering(sg)
+
+    # Function of properties of subgraph
+
+    nodelist = sg.nodes()  # ordering of nodes in matrix
+    A = nx.to_numpy_matrix(sg, nodelist)
+    A[A != 0.0] = 1
+    expA = scipy.linalg.expm(A)
+    val = np.mean(expA)/nx.number_of_nodes(sg)
     return val
 
 
@@ -38,18 +47,16 @@ def listcompare(initialpopulation, generateindividual):
 
 
 # Function to initialize population.
-def initializepopulation(inpopulationsize, n, data):
+def initializepopulation(inpopulationsize, n, data, bern):
     print("initializing population")
     initialpopulation = []
     while len(initialpopulation) < inpopulationsize:
         # generate individual
-        generateindividual = bernoulli.rvs(0.4, size=n)  # Generates an n sized array, 0.01 probability of 1 bit
+        generateindividual = bernoulli.rvs(bern, size=n)  # Generates an n sized array, 0.01 probability of 1 bit
         # is generated individual valid?
         isfeasible = isFeasibleSolution(generateindividual, data)
         # if valid and does not already exist in population, add to population
         if isfeasible and listcompare(initialpopulation, generateindividual):
-            #print(isfeasible)
-            #print(generateindividual)
             initialpopulation.append(generateindividual)
     return initialpopulation
 
@@ -78,13 +85,13 @@ def killindividual(popfitness):
 
 
 # Function to perform GA
-def ga(popsize, n, mutationrate, crossoverrate, numgen, data):
+def ga(popsize, n, crossoverrate, mutationrate, numgen, data, bern):
     print("GA started")
     # Set up GA
     objcallcount = 0  # To track number of fitness function calls
 
     # Define the initial population
-    initialpopulation = initializepopulation(popsize, n, data)
+    initialpopulation = initializepopulation(popsize, n, data, bern)
     population = copy.deepcopy(initialpopulation)
     # population is a list of length population size and each element an n sized array
     popfitness = []  # Keeps the fitness values of the current population
@@ -118,24 +125,22 @@ def ga(popsize, n, mutationrate, crossoverrate, numgen, data):
             children = [np.concatenate((parentpair[0][0:crossoverpoint], parentpair[1][crossoverpoint:int(n)]), axis=0),
                         np.concatenate((parentpair[1][0:crossoverpoint], parentpair[0][crossoverpoint:int(n)]), axis=0)]
         else:
-            print("Not crossing over")
             children = [copy.deepcopy(parentpair[0]), copy.deepcopy(parentpair[1])]
 
         # Mutation
         genflag = bernoulli.rvs(mutationrate, size=1)
         if genflag[0] == 1:  # Do Mutation
-            print("Mutating")
             index = random.randrange(0, int(n), 1)
             for i in range(len(children)):
                 children[i][index] = 1 - children[i][index]
 
-        print(children)
-        print(population)
+        #print(children)
+        #print(population)
         for j in range(len(children)):
             isfeasible = isFeasibleSolution(children[j], data)
             if isfeasible and listcompare(population, children[j]):  # If feasible and not already present in population
-                print(isfeasible)
-                print(children[j])
+                # print(isfeasible)
+                # print(children[j])
                 presentindex = killindividual(popfitness)
                 population.pop(presentindex)
                 popfitness.pop(presentindex)
@@ -151,7 +156,8 @@ def ga(popsize, n, mutationrate, crossoverrate, numgen, data):
             "population": population,
             "fitness": fitness,
             "popfitness": popfitness,
-            "initpopulation": initialpopulation
+            "initpopulation": initialpopulation,
+            "fitnesscalls": objcallcount
     }
 
     return retdict
